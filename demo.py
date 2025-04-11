@@ -17,6 +17,13 @@ def load_model():
 
 def process_image(image_url, question, model, processor):
     """Process an image and generate a response to a question."""
+    # Download and save the image
+    response = requests.get(image_url)
+    image_name = "sample_image.jpg"
+    with open(image_name, "wb") as f:
+        f.write(response.content)
+    print(f"Image saved as {image_name}")
+    
     messages = [
         {
             "role": "user",
