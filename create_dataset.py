@@ -59,13 +59,33 @@ def create_cifar10_dataset():
     print("Setting up directories...")
     setup_directories()
     
+    # First check if dataset file already exists
+    output_path = "dataset/cifar10_test_conversations.json"
+    if os.path.exists(output_path):
+        print(f"Dataset already exists at {output_path}")
+        print("Do you want to create it again? This will overwrite the existing dataset.")
+        response = input("Enter 'yes' to continue or any other key to exit: ")
+        if response.lower() != 'yes':
+            print("Exiting without creating new dataset.")
+            return
+    
     print("Loading CIFAR10 test dataset...")
-    transform = transforms.ToTensor()
-    cifar_dataset = datasets.CIFAR10(root='./data', train=False,  # Changed to test dataset
-                                    download=True, transform=transform)
+    try:
+        transform = transforms.ToTensor()
+        cifar_dataset = datasets.CIFAR10(root='./data', train=False, 
+                                        download=True, transform=transform)
+        print(f"Successfully loaded CIFAR10 test dataset with {len(cifar_dataset)} images")
+    except Exception as e:
+        print(f"Error loading CIFAR10 dataset: {str(e)}")
+        return
     
     print("Loading SmolVLM2 model...")
-    model, processor = load_model()
+    try:
+        model, processor = load_model()
+        print("Successfully loaded SmolVLM2 model")
+    except Exception as e:
+        print(f"Error loading SmolVLM2 model: {str(e)}")
+        return
     
     dataset = []
     questions = get_questions()
