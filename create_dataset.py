@@ -5,6 +5,8 @@ import uuid
 import json
 import os
 from tqdm import tqdm
+import subprocess
+from datetime import datetime
 
 # Import our SmolVLM2 setup
 from demo import load_model
@@ -141,12 +143,63 @@ def create_cifar10_dataset():
     save_dataset(dataset)
     print("Dataset creation completed!")
 
+def push_to_github():
+    """Push only the dataset JSON file to GitHub main branch"""
+    try:
+        # Get GitHub token from environment variable
+        github_token = os.getenv('GITHUB_TOKEN')
+        if not github_token:
+            print("Error: GITHUB_TOKEN environment variable not set")
+            print("Please set your GitHub access token with:")
+            print("export GITHUB_TOKEN=your_token_here")
+            return False
+            
+        # Configure git with token
+        repo_url = subprocess.check_output(['git', 'config', '--get', 'remote.origin.url']).decode().strip()
+        if repo_url.startswith('https://'):
+            new_url = f"https://{github_token}@github.com/{repo_url[19:]}"
+            subprocess.run(['git', 'remote', 'set-url', 'origin', new_url], check=True)
+        
+        # Add only the dataset JSON file
+        subprocess.run(['git', 'add', 'dataset/cifar10_test_conversations.json'], check=True)
+        
+        # Configure git user if not already set
+        try:
+            subprocess.check_output(['git', 'config', 'user.email'])
+        except subprocess.CalledProcessError:
+            subprocess.run(['git', 'config', 'user.email', "github-actions@github.com"], check=True)
+            subprocess.run(['git', 'config', 'user.name', "GitHub Action"], check=True)
+        
+        # Create commit with timestamp
+        timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        commit_message = f"Update CIFAR10 conversation dataset - {timestamp}"
+        subprocess.run(['git', 'commit', '-m', commit_message], check=True)
+        
+        # Push to main branch
+        subprocess.run(['git', 'push', 'origin', 'main'], check=True)
+        
+        print(f"Successfully pushed dataset JSON to GitHub at {timestamp}")
+        
+        # Reset the URL to not expose token
+        if repo_url.startswith('https://'):
+            subprocess.run(['git', 'remote', 'set-url', 'origin', repo_url], check=True)
+            
+    except subprocess.CalledProcessError as e:
+        print(f"Error pushing to GitHub: {str(e)}")
+        return False
+    return True
+
 def save_dataset(dataset):
-    """Save the dataset to a JSON file"""
+    """Save the dataset and push to GitHub"""
     output_path = "dataset/cifar10_test_conversations.json"
     with open(output_path, 'w') as f:
         json.dump(dataset, f, indent=2)
     print(f"Dataset saved to {output_path}")
+    
+    # Push to GitHub after final save
+    if len(dataset) >= 100:  # Only push when we have all 100 images
+        print("Pushing complete dataset to GitHub...")
+        push_to_github()
 
 if __name__ == "__main__":
     create_cifar10_dataset() 
