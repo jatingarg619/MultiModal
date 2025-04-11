@@ -10,15 +10,14 @@ from tqdm import tqdm
 from demo import load_model
 
 def process_local_image(image_path, question, model, processor):
-    """Process a local image file instead of URL"""
-    # Load the image
+    """Process a local image file"""
     image = Image.open(image_path)
     
     messages = [
         {
             "role": "user",
             "content": [
-                {"type": "image", "image": image},  # Pass PIL Image directly
+                {"type": "image", "image": image},
                 {"type": "text", "text": question},
             ]
         },
@@ -60,9 +59,9 @@ def create_cifar10_dataset():
     print("Setting up directories...")
     setup_directories()
     
-    print("Loading CIFAR10 dataset...")
+    print("Loading CIFAR10 test dataset...")
     transform = transforms.ToTensor()
-    cifar_dataset = datasets.CIFAR10(root='./data', train=True, 
+    cifar_dataset = datasets.CIFAR10(root='./data', train=False,  # Changed to test dataset
                                     download=True, transform=transform)
     
     print("Loading SmolVLM2 model...")
@@ -71,16 +70,19 @@ def create_cifar10_dataset():
     dataset = []
     questions = get_questions()
     
-    print("Processing images...")
-    for idx, (image, label) in enumerate(tqdm(cifar_dataset)):
-        if idx >= 100:  # Start with 100 images first
+    # Create a subset of 100 images
+    target_images = 100
+    print(f"Processing {target_images} test images...")
+    
+    for idx, (image, label) in enumerate(tqdm(cifar_dataset, total=target_images)):
+        if idx >= target_images:
             break
             
         # Convert to PIL Image
         pil_image = transforms.ToPILImage()(image)
         
         # Save image
-        img_path = f"cifar10_images/image_{label}_{uuid.uuid4()}.jpg"
+        img_path = f"cifar10_images/test_image_{label}_{uuid.uuid4()}.jpg"
         pil_image.save(img_path)
         
         # Create conversation for each image
@@ -113,6 +115,7 @@ def create_cifar10_dataset():
         # Save progress periodically
         if (idx + 1) % 10 == 0:
             save_dataset(dataset)
+            print(f"Processed {idx + 1}/{target_images} images")
     
     # Final save
     save_dataset(dataset)
@@ -120,7 +123,7 @@ def create_cifar10_dataset():
 
 def save_dataset(dataset):
     """Save the dataset to a JSON file"""
-    output_path = "dataset/cifar10_conversations.json"
+    output_path = "dataset/cifar10_test_conversations.json"
     with open(output_path, 'w') as f:
         json.dump(dataset, f, indent=2)
     print(f"Dataset saved to {output_path}")
