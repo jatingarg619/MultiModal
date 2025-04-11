@@ -11,7 +11,7 @@ def load_model():
     model = AutoModelForImageTextToText.from_pretrained(
         model_path,
         torch_dtype=torch.bfloat16,
-        _attn_implementation="flash_attention_2"
+        use_flash_attention_2=False  # Disable Flash Attention 2
     ).to("cuda" if torch.cuda.is_available() else "cpu")
     return model, processor
 
