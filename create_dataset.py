@@ -7,7 +7,33 @@ import os
 from tqdm import tqdm
 
 # Import our SmolVLM2 setup
-from demo import load_model, process_image
+from demo import load_model
+
+def process_local_image(image_path, question, model, processor):
+    """Process a local image file instead of URL"""
+    # Load the image
+    image = Image.open(image_path)
+    
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "image", "image": image},  # Pass PIL Image directly
+                {"type": "text", "text": question},
+            ]
+        },
+    ]
+
+    inputs = processor.apply_chat_template(
+        messages,
+        add_generation_prompt=True,
+        tokenize=True,
+        return_dict=True,
+        return_tensors="pt"
+    ).to(model.device, dtype=torch.bfloat16)
+
+    generated_ids = model.generate(**inputs, do_sample=False, max_new_tokens=64)
+    return processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
 
 def setup_directories():
     """Create necessary directories for dataset"""
@@ -61,7 +87,7 @@ def create_cifar10_dataset():
         conversations = []
         for question in questions:
             try:
-                response = process_image(img_path, question, model, processor)
+                response = process_local_image(img_path, question, model, processor)
                 conversations.extend([
                     {
                         "from": "human",
