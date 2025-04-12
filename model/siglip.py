@@ -21,32 +21,40 @@ class SigLIPModel(nn.Module):
             nn.Linear(256, 512)
         )
         
-        # Text encoder (Phi-3)
+        # Text encoder with memory optimizations
         self.text_tokenizer = AutoTokenizer.from_pretrained(phi_model_name)
-        self.text_encoder = AutoModel.from_pretrained(phi_model_name)
+        self.text_encoder = AutoModel.from_pretrained(
+            phi_model_name,
+            torch_dtype=torch.float16,  # Use half precision
+            use_cache=False  # Disable KV cache
+        )
+        # Enable gradient checkpointing
+        self.text_encoder.gradient_checkpointing_enable()
         
-        # Project text embeddings to same dimension as image embeddings
-        self.text_projector = nn.Linear(self.text_encoder.config.hidden_size, 512)
+        # Project text embeddings (in half precision)
+        self.text_projector = nn.Linear(self.text_encoder.config.hidden_size, 512, dtype=torch.float16)
         
-        # Temperature parameter for loss scaling
+        # Temperature parameter
         self.temperature = nn.Parameter(torch.ones([]) * 0.07)
         
     def encode_image(self, image):
         return self.image_encoder(image)
     
     def encode_text(self, text, device):
-        tokenized = self.text_tokenizer(
-            text, 
-            return_tensors="pt", 
-            padding=True, 
-            truncation=True
-        )
-        
-        # Move tokenized inputs to the correct device
-        tokenized = {k: v.to(device) for k, v in tokenized.items()}
-        
-        text_features = self.text_encoder(**tokenized).last_hidden_state[:, 0, :]  # Take [CLS] token
-        return self.text_projector(text_features)
+        with torch.cuda.amp.autocast():  # Use automatic mixed precision
+            tokenized = self.text_tokenizer(
+                text, 
+                return_tensors="pt", 
+                padding=True, 
+                truncation=True,
+                max_length=256  # Limit sequence length
+            )
+            
+            # Move tokenized inputs to device
+            tokenized = {k: v.to(device) for k, v in tokenized.items()}
+            
+            text_features = self.text_encoder(**tokenized).last_hidden_state[:, 0, :]
+            return self.text_projector(text_features)
     
     def forward(self, image, text):
         # Get embeddings
