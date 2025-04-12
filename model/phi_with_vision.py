@@ -27,22 +27,14 @@ class PhiWithVision(nn.Module):
         if inputs_embeds is not None:
             combined_embeddings = inputs_embeds
         else:
-            # Debug prints
-            print(f"Image embeddings shape: {image_embeddings.shape}")
-            
             # Project image embeddings to match model dimensions
-            # image_embeddings is already [4, 1, 512], no need to reshape
             projected_image = self.image_projection(image_embeddings)
-            print(f"Projected image shape: {projected_image.shape}")
             
             # Get text embeddings from first layer
             text_embeddings = self.phi.get_input_embeddings()(input_ids)
-            print(f"Text embeddings shape: {text_embeddings.shape}")
             
-            # No need for additional unsqueeze since projected_image is already [4, 1, 3072]
-            # Just concatenate directly
+            # Concatenate embeddings
             combined_embeddings = torch.cat([projected_image, text_embeddings], dim=1)
-            print(f"Combined embeddings shape: {combined_embeddings.shape}")
             
             # Adjust attention mask
             if attention_mask is not None:
@@ -51,6 +43,17 @@ class PhiWithVision(nn.Module):
                     device=attention_mask.device
                 )
                 attention_mask = torch.cat([extended_attention_mask, attention_mask], dim=1)
+            
+            # Adjust labels to account for the added image token
+            if labels is not None:
+                # Create padding label for the image token position
+                image_token_labels = torch.full(
+                    (labels.shape[0], 1),
+                    -100,  # Ignore index for loss calculation
+                    device=labels.device,
+                    dtype=labels.dtype
+                )
+                labels = torch.cat([image_token_labels, labels], dim=1)
         
         # Forward pass through the model
         outputs = self.phi(
