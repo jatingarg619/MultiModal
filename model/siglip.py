@@ -38,19 +38,30 @@ class SigLIPModel(nn.Module):
         return self.image_encoder(image)
     
     def encode_text(self, text, device):
-        with torch.cuda.amp.autocast():  # Use automatic mixed precision
+        with torch.amp.autocast('cuda', dtype=torch.float32):  # Updated syntax and explicit dtype
             tokenized = self.text_tokenizer(
                 text, 
                 return_tensors="pt", 
                 padding=True, 
                 truncation=True,
-                max_length=256  # Limit sequence length
+                max_length=128  # Reduced from 256 to save memory
             )
             
             # Move tokenized inputs to device
             tokenized = {k: v.to(device) for k, v in tokenized.items()}
             
-            text_features = self.text_encoder(**tokenized).last_hidden_state[:, 0, :]
+            # Process in smaller chunks if needed
+            batch_size = len(text)
+            chunk_size = 2  # Process 2 texts at a time
+            text_features_list = []
+            
+            for i in range(0, batch_size, chunk_size):
+                chunk_tokens = {k: v[i:i+chunk_size] for k, v in tokenized.items()}
+                with torch.no_grad():  # Don't track gradients for encoding
+                    chunk_features = self.text_encoder(**chunk_tokens).last_hidden_state[:, 0, :]
+                    text_features_list.append(chunk_features)
+            
+            text_features = torch.cat(text_features_list, dim=0)
             return self.text_projector(text_features)
     
     def forward(self, image, text):
