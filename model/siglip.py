@@ -34,16 +34,24 @@ class SigLIPModel(nn.Module):
     def encode_image(self, image):
         return self.image_encoder(image)
     
-    def encode_text(self, text):
-        text_features = self.text_encoder(
-            **self.text_tokenizer(text, return_tensors="pt", padding=True, truncation=True).to(image.device)
-        ).last_hidden_state[:, 0, :]  # Take [CLS] token
+    def encode_text(self, text, device):
+        tokenized = self.text_tokenizer(
+            text, 
+            return_tensors="pt", 
+            padding=True, 
+            truncation=True
+        )
+        
+        # Move tokenized inputs to the correct device
+        tokenized = {k: v.to(device) for k, v in tokenized.items()}
+        
+        text_features = self.text_encoder(**tokenized).last_hidden_state[:, 0, :]  # Take [CLS] token
         return self.text_projector(text_features)
     
     def forward(self, image, text):
         # Get embeddings
         image_features = self.encode_image(image)
-        text_features = self.encode_text(text)
+        text_features = self.encode_text(text, image.device)
         
         # Normalize features
         image_features = nn.functional.normalize(image_features, dim=-1)
