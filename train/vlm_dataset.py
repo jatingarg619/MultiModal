@@ -5,6 +5,8 @@ import numpy as np
 
 class VLMDataset(Dataset):
     def __init__(self, siglip_data_dir):
+        self.siglip_data_dir = siglip_data_dir  # Store the directory path
+        
         # Load metadata and processed dataset
         with open(f"{siglip_data_dir}/metadata.json", 'r') as f:
             self.metadata = json.load(f)
@@ -23,8 +25,8 @@ Description: """
     def __getitem__(self, idx):
         sample = self.data[idx]
         
-        # Load embeddings
-        embeddings = np.load(f"{self.metadata['siglip_data_dir']}/sample_{idx}_embeddings.npz")
+        # Load embeddings using the stored directory path
+        embeddings = np.load(f"{self.siglip_data_dir}/sample_{idx}_embeddings.npz")
         
         # Format input with instruction
         input_text = self.instruction_template
