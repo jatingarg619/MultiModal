@@ -31,11 +31,7 @@ class PhiWithVision(nn.Module):
             print(f"Image embeddings shape: {image_embeddings.shape}")
             
             # Project image embeddings to match model dimensions
-            if image_embeddings.dim() == 4:
-                print("Reshaping 4D image embeddings...")
-                image_embeddings = image_embeddings.squeeze()  # Remove extra dimensions
-                print(f"After squeeze shape: {image_embeddings.shape}")
-            
+            # image_embeddings is already [4, 1, 512], no need to reshape
             projected_image = self.image_projection(image_embeddings)
             print(f"Projected image shape: {projected_image.shape}")
             
@@ -43,11 +39,8 @@ class PhiWithVision(nn.Module):
             text_embeddings = self.phi.get_input_embeddings()(input_ids)
             print(f"Text embeddings shape: {text_embeddings.shape}")
             
-            # Make projected_image 3D to match text_embeddings
-            projected_image = projected_image.unsqueeze(1)
-            print(f"Projected image after unsqueeze shape: {projected_image.shape}")
-            
-            # Now both tensors should be 3D
+            # No need for additional unsqueeze since projected_image is already [4, 1, 3072]
+            # Just concatenate directly
             combined_embeddings = torch.cat([projected_image, text_embeddings], dim=1)
             print(f"Combined embeddings shape: {combined_embeddings.shape}")
             
