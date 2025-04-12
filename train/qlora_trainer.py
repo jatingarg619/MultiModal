@@ -134,4 +134,9 @@ def train_vlm(siglip_data_dir, output_dir="vlm_model", batch_size=4, num_epochs=
         avg_loss = total_loss / (len(dataset) // batch_size)
         print(f"Epoch {epoch+1}/{num_epochs}, Average Loss: {avg_loss:.4f}")
     
-    return model 
+    print("Saving model...")
+    # Save the final model
+    model.save_pretrained(output_dir)
+    tokenizer.save_pretrained(output_dir)
+    
+    return model, tokenizer 
