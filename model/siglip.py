@@ -21,20 +21,17 @@ class SigLIPModel(nn.Module):
             nn.Linear(256, 512)
         )
         
-        # Text encoder with memory optimizations
+        # Text encoder with float32
         self.text_tokenizer = AutoTokenizer.from_pretrained(phi_model_name)
         self.text_encoder = AutoModel.from_pretrained(
             phi_model_name,
-            torch_dtype=torch.float16,  # Use half precision
-            use_cache=False  # Disable KV cache
+            torch_dtype=torch.float32,  # Changed from bfloat16 to float32
+            use_cache=False
         )
-        # Enable gradient checkpointing
-        self.text_encoder.gradient_checkpointing_enable()
         
-        # Project text embeddings (in half precision)
-        self.text_projector = nn.Linear(self.text_encoder.config.hidden_size, 512, dtype=torch.float16)
+        # Project text embeddings (in float32)
+        self.text_projector = nn.Linear(self.text_encoder.config.hidden_size, 512)
         
-        # Temperature parameter
         self.temperature = nn.Parameter(torch.ones([]) * 0.07)
         
     def encode_image(self, image):

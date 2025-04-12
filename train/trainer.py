@@ -4,20 +4,17 @@ from torchvision import transforms
 from tqdm import tqdm
 
 def train_siglip(model, train_dataset, val_dataset=None, 
-                 batch_size=8,  # Reduced batch size
-                 num_epochs=10, 
-                 learning_rate=1e-4,
-                 gradient_accumulation_steps=4):  # Add gradient accumulation
+                 batch_size=4, num_epochs=10, learning_rate=1e-4,
+                 gradient_accumulation_steps=2):
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     
-    # Create data loader with smaller batch size
     train_loader = DataLoader(train_dataset, batch_size=batch_size, 
-                            shuffle=True, num_workers=2)  # Reduced num_workers
+                            shuffle=True, num_workers=2)
     
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
-    scaler = torch.cuda.amp.GradScaler()  # For mixed precision training
+    scaler = torch.amp.GradScaler('cuda')  # Updated syntax
     
     for epoch in range(num_epochs):
         model.train()
@@ -28,16 +25,18 @@ def train_siglip(model, train_dataset, val_dataset=None,
             images = images.to(device)
             
             # Forward pass with mixed precision
-            with torch.cuda.amp.autocast():
+            with torch.amp.autocast('cuda'):  # Updated syntax
                 logits = model(images, texts)
                 labels = torch.arange(len(images)).to(device)
                 loss = torch.nn.functional.cross_entropy(logits, labels)
                 loss = loss / gradient_accumulation_steps
             
-            # Backward pass with gradient scaling
+            # Backward pass
             scaler.scale(loss).backward()
             
             if (batch_idx + 1) % gradient_accumulation_steps == 0:
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
                 scaler.step(optimizer)
                 scaler.update()
                 optimizer.zero_grad()
