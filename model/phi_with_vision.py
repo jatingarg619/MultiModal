@@ -28,13 +28,23 @@ class PhiWithVision(nn.Module):
             combined_embeddings = inputs_embeds
         else:
             # Project image embeddings to match model dimensions
+            # First, ensure image_embeddings is 3D: [batch_size, 1, embedding_dim]
+            if image_embeddings.dim() == 4:
+                # If 4D, collapse the middle dimensions
+                image_embeddings = image_embeddings.view(image_embeddings.size(0), -1)
+            
             projected_image = self.image_projection(image_embeddings)
             
             # Get text embeddings from first layer
             text_embeddings = self.phi.get_input_embeddings()(input_ids)
             
-            # Concatenate image and text embeddings along sequence length dimension
-            combined_embeddings = torch.cat([projected_image.unsqueeze(1), text_embeddings], dim=1)
+            # Make projected_image 3D to match text_embeddings: [batch_size, 1, hidden_size]
+            projected_image = projected_image.unsqueeze(1)
+            
+            # Now both tensors should be 3D:
+            # projected_image: [batch_size, 1, hidden_size]
+            # text_embeddings: [batch_size, sequence_length, hidden_size]
+            combined_embeddings = torch.cat([projected_image, text_embeddings], dim=1)
             
             # Adjust attention mask to account for added image token
             if attention_mask is not None:
