@@ -27,16 +27,13 @@ class CIFARDescriptionDataset(Dataset):
         item = self.descriptions_data[idx]
         
         # Extract image index and label from our saved image path
-        # Debug the actual path format
         image_path = item['image']
         try:
-            # Print the path to understand its structure
-            print(f"Processing image path: {image_path}")
-            
             # Split the path and get components
+            # Format is: cifar10_images/test_image_X_uuid.jpg
             parts = image_path.split('/')[-1].split('_')
-            # Assuming format is now something like "image_6_uuid.jpg"
-            label = int(parts[1])  # Get the label (should be the number after "image")
+            # The label is the third part (index 2) after splitting
+            label = int(parts[2])  # Get the label number
             
         except Exception as e:
             print(f"Error parsing path {image_path}: {str(e)}")
