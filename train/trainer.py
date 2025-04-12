@@ -2,6 +2,9 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from tqdm import tqdm
+import os
+import numpy as np
+import json
 
 def train_siglip(model, train_dataset, val_dataset=None, 
                  batch_size=2,  # Reduced batch size
@@ -51,3 +54,78 @@ def train_siglip(model, train_dataset, val_dataset=None,
             
         avg_loss = total_loss / len(train_loader)
         print(f"Epoch {epoch+1}/{num_epochs}, Average Loss: {avg_loss:.4f}") 
+    
+    # After training completes, save everything we need for VLM training
+    print("\nSaving model and processed dataset for VLM training...")
+    
+    # Create directories
+    save_base_dir = "siglip_processed_data"
+    os.makedirs(save_base_dir, exist_ok=True)
+    
+    # 1. Save the trained SigLIP model
+    model_path = f"{save_base_dir}/siglip_model.pth"
+    torch.save(model.state_dict(), model_path)
+    print(f"Saved SigLIP model to {model_path}")
+    
+    # 2. Process and save dataset with embeddings
+    model.eval()
+    processed_dataset = []
+    
+    with torch.no_grad():
+        for idx in tqdm(range(len(train_dataset)), desc="Processing dataset"):
+            image, text = train_dataset[idx]
+            
+            # Get image path and label from the dataset
+            image_path = train_dataset.data[idx]['image']
+            label = image_path.split('_')[2]  # Extract label from path
+            
+            # Generate embeddings
+            image = image.unsqueeze(0).to(device)
+            image_embedding = model.encode_image(image)
+            text_embedding = model.encode_text([text], device)
+            
+            # Create sample dictionary
+            sample = {
+                'idx': idx,
+                'label': label,
+                'text': text,
+                'image_path': image_path,
+                'embeddings': {
+                    'image': image_embedding.cpu().numpy().tolist(),
+                    'text': text_embedding.cpu().numpy().tolist()
+                }
+            }
+            
+            # Save individual sample embeddings
+            np.savez(
+                f"{save_base_dir}/sample_{idx}_embeddings.npz",
+                image_embedding=image_embedding.cpu().numpy(),
+                text_embedding=text_embedding.cpu().numpy()
+            )
+            
+            processed_dataset.append(sample)
+    
+    # 3. Save dataset metadata
+    metadata = {
+        'num_samples': len(processed_dataset),
+        'embedding_dim': image_embedding.shape[-1],
+        'model_path': model_path
+    }
+    
+    # Save metadata
+    with open(f"{save_base_dir}/metadata.json", 'w') as f:
+        json.dump(metadata, f, indent=2)
+    
+    # Save processed dataset
+    with open(f"{save_base_dir}/processed_dataset.json", 'w') as f:
+        json.dump(processed_dataset, f, indent=2)
+    
+    print(f"\nSaved processed dataset and embeddings to {save_base_dir}/")
+    print("Directory structure:")
+    print(f"  {save_base_dir}/")
+    print(f"  ├── siglip_model.pth")
+    print(f"  ├── metadata.json")
+    print(f"  ├── processed_dataset.json")
+    print(f"  └── sample_*_embeddings.npz")
+    
+    return model, processed_dataset 
