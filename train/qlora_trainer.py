@@ -1,4 +1,4 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
+from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 import torch
 from datasets import Dataset
@@ -6,13 +6,21 @@ from tqdm import tqdm
 from .vlm_dataset import VLMDataset
 
 def prepare_qlora_training(siglip_data_dir, output_dir="vlm_model"):
-    # Load the same Phi-3 configuration as used in SigLIP's text encoder
-    model = AutoModelForCausalLM.from_pretrained(
-        "microsoft/Phi-3-mini-4k-instruct",  # Same model as SigLIP
-        trust_remote_code=True,
-        torch_dtype=torch.float32,
+    # Configure quantization
+    bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
-        device_map="auto"
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.float32
+    )
+
+    # Load model with quantization config and attn_implementation
+    model = AutoModelForCausalLM.from_pretrained(
+        "microsoft/Phi-3-mini-4k-instruct",
+        quantization_config=bnb_config,
+        trust_remote_code=True,
+        device_map="auto",
+        attn_implementation="eager"  # Add this to handle flash-attention warning
     )
     
     tokenizer = AutoTokenizer.from_pretrained(
@@ -54,9 +62,7 @@ def train_vlm(siglip_data_dir, output_dir="vlm_model", batch_size=4, num_epochs=
         learning_rate=2e-4,
         fp16=True,
         logging_steps=10,
-        save_strategy="epoch",
-        evaluation_strategy="no",
-        warmup_ratio=0.1,
+        save_strategy="epoch"
     )
     
     # Custom training loop
