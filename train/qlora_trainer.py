@@ -57,6 +57,10 @@ def train_vlm(siglip_data_dir, output_dir="vlm_model", batch_size=4, num_epochs=
     # Prepare model and tokenizer
     model, tokenizer = prepare_qlora_training(siglip_data_dir, output_dir)
     
+    # Get device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+    
     # Training arguments
     training_args = TrainingArguments(
         output_dir=output_dir,
@@ -90,9 +94,9 @@ def train_vlm(siglip_data_dir, output_dir="vlm_model", batch_size=4, num_epochs=
             targets = tokenizer(target_texts, padding=True, truncation=True, return_tensors="pt")
             
             # Move to device
-            inputs = {k: v.to(model.device) for k, v in inputs.items()}
-            targets = targets.input_ids.to(model.device)
-            image_embeddings = image_embeddings.to(model.device)
+            inputs = {k: v.to(device) for k, v in inputs.items()}
+            targets = targets.input_ids.to(device)
+            image_embeddings = image_embeddings.to(device)
             
             # Forward pass
             outputs = model(

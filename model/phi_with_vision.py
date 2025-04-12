@@ -17,6 +17,10 @@ class PhiWithVision(nn.Module):
         self.prepare_inputs_for_generation = base_model.prepare_inputs_for_generation
         self.generation_config = base_model.generation_config
         
+    @property
+    def device(self):
+        return next(self.parameters()).device
+        
     def forward(self, input_ids, attention_mask, image_embeddings, labels=None):
         # Project image embeddings to match model dimensions
         projected_image = self.image_projection(image_embeddings)
