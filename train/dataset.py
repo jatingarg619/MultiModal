@@ -5,53 +5,46 @@ from PIL import Image
 import json
 import os
 
-class CIFARDescriptionDataset(Dataset):
+class SigLIPDataset(Dataset):
     def __init__(self, json_path, transform=None):
         # Load our JSON descriptions
         with open(json_path, 'r') as f:
-            self.descriptions_data = json.load(f)
+            self.data = json.load(f)
             
-        # Download CIFAR10 test dataset
+        # Load CIFAR10 test dataset
         self.cifar_dataset = datasets.CIFAR10(
             root='./data', 
-            train=False,  # Using test set as per our previous setup
+            train=False,  # Using test set
             download=True
         )
         
         self.transform = transform
+        print(f"SigLIP Dataset loaded with {len(self.data)} image-text pairs")
         
     def __len__(self):
-        return len(self.descriptions_data)
+        return len(self.data)
     
     def __getitem__(self, idx):
-        item = self.descriptions_data[idx]
+        item = self.data[idx]
         
-        # Extract image index and label from our saved image path
+        # Get label from the saved image path
+        # Format: cifar10_images/test_image_{label}_{uuid}.jpg
         image_path = item['image']
-        try:
-            # Split the path and get components
-            # Format is: cifar10_images/test_image_X_uuid.jpg
-            parts = image_path.split('/')[-1].split('_')
-            # The label is the third part (index 2) after splitting
-            label = int(parts[2])  # Get the label number
-            
-        except Exception as e:
-            print(f"Error parsing path {image_path}: {str(e)}")
-            # Fallback to first image of first class
-            label = 0
+        label = int(image_path.split('_')[2])  # Get the label number
         
-        # Get corresponding CIFAR10 image
+        # Find corresponding CIFAR10 image
         cifar_images_with_label = [(i, img) for i, (img, l) in enumerate(self.cifar_dataset) if l == label]
         if cifar_images_with_label:
             _, image = cifar_images_with_label[0]  # Take the first image with matching label
         else:
             raise ValueError(f"No CIFAR10 image found with label {label}")
-        
+            
         # Convert to PIL Image and apply transforms
+        image = Image.fromarray(image)
         if self.transform:
             image = self.transform(image)
             
-        # Get description (concatenate all assistant responses)
+        # Get all assistant responses and combine them
         descriptions = []
         for conv in item['conversations']:
             if conv['from'] == 'assistant':

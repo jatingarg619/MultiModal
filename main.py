@@ -1,5 +1,5 @@
 from model.siglip import SigLIPModel
-from train.dataset import CIFARDescriptionDataset
+from train.dataset import SigLIPDataset
 from train.trainer import train_siglip
 from torchvision import transforms
 
@@ -12,8 +12,8 @@ def main():
                            std=[0.229, 0.224, 0.225])
     ])
     
-    # Create dataset
-    dataset = CIFARDescriptionDataset(
+    # Create SigLIP dataset from our generated JSON
+    dataset = SigLIPDataset(
         json_path='dataset/cifar10_test_conversations.json',
         transform=transform
     )
@@ -25,9 +25,10 @@ def main():
     train_siglip(
         model=model,
         train_dataset=dataset,
-        batch_size=32,
+        batch_size=4,
         num_epochs=10,
-        learning_rate=1e-4
+        learning_rate=1e-4,
+        gradient_accumulation_steps=2
     )
 
 if __name__ == "__main__":
