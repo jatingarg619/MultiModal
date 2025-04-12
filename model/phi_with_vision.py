@@ -12,6 +12,11 @@ class PhiWithVision(nn.Module):
             out_features=self.phi.config.hidden_size  # Phi model dimension
         )
         
+        # Copy necessary attributes from base model
+        self.config = base_model.config
+        self.prepare_inputs_for_generation = base_model.prepare_inputs_for_generation
+        self.generation_config = base_model.generation_config
+        
     def forward(self, input_ids, attention_mask, image_embeddings, labels=None):
         # Project image embeddings to match model dimensions
         projected_image = self.image_projection(image_embeddings)
@@ -36,4 +41,16 @@ class PhiWithVision(nn.Module):
             labels=labels
         )
         
-        return outputs 
+        return outputs
+
+    def get_input_embeddings(self):
+        return self.phi.get_input_embeddings()
+
+    def set_input_embeddings(self, value):
+        self.phi.set_input_embeddings(value)
+
+    def get_output_embeddings(self):
+        return self.phi.get_output_embeddings()
+
+    def set_output_embeddings(self, new_embeddings):
+        self.phi.set_output_embeddings(new_embeddings) 
