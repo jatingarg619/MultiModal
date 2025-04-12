@@ -3,8 +3,8 @@ from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 import torch
 from datasets import Dataset
 from tqdm import tqdm
-from .vlm_dataset import VLMDataset
-from ..model.phi_with_vision import PhiWithVision
+from train.vlm_dataset import VLMDataset
+from model.phi_with_vision import PhiWithVision
 
 def prepare_qlora_training(siglip_data_dir, output_dir="vlm_model"):
     # Configure quantization
