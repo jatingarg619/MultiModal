@@ -8,8 +8,8 @@ class PhiWithVision(nn.Module):
         
         # Add a projection layer for image embeddings
         self.image_projection = nn.Linear(
-            in_features=base_model.config.hidden_size,  # SigLIP embedding dimension
-            out_features=base_model.config.hidden_size  # Phi model dimension
+            in_features=512,  # SigLIP embedding dimension
+            out_features=self.phi.config.hidden_size  # Phi model dimension
         )
         
     def forward(self, input_ids, attention_mask, image_embeddings, labels=None):

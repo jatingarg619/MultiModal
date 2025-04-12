@@ -4,6 +4,7 @@ import torch
 from datasets import Dataset
 from tqdm import tqdm
 from .vlm_dataset import VLMDataset
+from ..model.phi_with_vision import PhiWithVision  # Add this import
 
 def prepare_qlora_training(siglip_data_dir, output_dir="vlm_model"):
     # Configure quantization
@@ -28,14 +29,17 @@ def prepare_qlora_training(siglip_data_dir, output_dir="vlm_model"):
         trust_remote_code=True
     )
     
+    # Wrap the model with PhiWithVision
+    model = PhiWithVision(model)
+    
     # Prepare model for kbit training
     model = prepare_model_for_kbit_training(model)
     
-    # Configure LoRA with target modules matching Phi-3's architecture
+    # Configure LoRA
     lora_config = LoraConfig(
         r=8,
         lora_alpha=32,
-        target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],  # Updated for Phi-3
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
         lora_dropout=0.05,
         bias="none",
         task_type="CAUSAL_LM"
