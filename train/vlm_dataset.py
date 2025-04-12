@@ -1,7 +1,7 @@
 import torch
+from torch.utils.data import Dataset
 import json
 import numpy as np
-from torch.utils.data import Dataset
 
 class VLMDataset(Dataset):
     def __init__(self, siglip_data_dir):
@@ -15,21 +15,26 @@ class VLMDataset(Dataset):
         self.instruction_template = """Below is an image. Please describe it in detail.
 
 Image: <image>
-Description:"""
-
+Description: """
+        
+        # Maximum sequence length for input
+        self.max_length = 128  # Adjust this based on model's requirements
+        
     def __getitem__(self, idx):
         sample = self.data[idx]
         
         # Load embeddings
-        embeddings = np.load(f"siglip_processed_data/sample_{idx}_embeddings.npz")
+        embeddings = np.load(f"{self.metadata['siglip_data_dir']}/sample_{idx}_embeddings.npz")
         
         # Format input with instruction
-        formatted_input = self.instruction_template.replace("<image>", "[IMAGE]")
+        input_text = self.instruction_template
+        target_text = sample['text']
         
+        # Tokenize input and target (we'll do this in the training loop)
         return {
             'image_embeddings': torch.tensor(embeddings['image_embedding']),
-            'text': sample['text'],
-            'input_text': formatted_input,
+            'input_text': input_text,
+            'target_text': target_text,
             'label': sample['label']
         }
 

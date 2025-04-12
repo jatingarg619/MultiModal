@@ -86,23 +86,36 @@ def train_vlm(siglip_data_dir, output_dir="vlm_model", batch_size=4, num_epochs=
             
             # Prepare inputs
             input_texts = [sample['input_text'] for sample in batch_samples]
-            target_texts = [sample['text'] for sample in batch_samples]
+            target_texts = [sample['target_text'] for sample in batch_samples]
             image_embeddings = torch.stack([sample['image_embeddings'] for sample in batch_samples])
             
-            # Tokenize
-            inputs = tokenizer(input_texts, padding=True, truncation=True, return_tensors="pt")
-            targets = tokenizer(target_texts, padding=True, truncation=True, return_tensors="pt")
+            # Tokenize with truncation
+            inputs = tokenizer(
+                input_texts,
+                padding=True,
+                truncation=True,
+                max_length=128,  # Match dataset max_length
+                return_tensors="pt"
+            )
+            
+            targets = tokenizer(
+                target_texts,
+                padding=True,
+                truncation=True,
+                max_length=128,  # Match dataset max_length
+                return_tensors="pt"
+            )
             
             # Move to device
             inputs = {k: v.to(device) for k, v in inputs.items()}
-            targets = targets.input_ids.to(device)
+            labels = targets.input_ids.to(device)
             image_embeddings = image_embeddings.to(device)
             
             # Forward pass
             outputs = model(
                 **inputs,
-                labels=targets,
-                image_embeddings=image_embeddings  # Custom forward pass handling in model
+                labels=labels,
+                image_embeddings=image_embeddings
             )
             
             loss = outputs.loss
