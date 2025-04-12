@@ -3,6 +3,7 @@ from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 import torch
 from datasets import Dataset
 from tqdm import tqdm
+from .vlm_dataset import VLMDataset
 
 def prepare_qlora_training(siglip_data_dir, output_dir="vlm_model"):
     # Load the same Phi-3 configuration as used in SigLIP's text encoder
@@ -38,7 +39,7 @@ def prepare_qlora_training(siglip_data_dir, output_dir="vlm_model"):
     return model, tokenizer
 
 def train_vlm(siglip_data_dir, output_dir="vlm_model", batch_size=4, num_epochs=3):
-    # Initialize dataset
+    # Now VLMDataset will be recognized
     dataset = VLMDataset(siglip_data_dir)
     
     # Prepare model and tokenizer
