@@ -27,26 +27,31 @@ class PhiWithVision(nn.Module):
         if inputs_embeds is not None:
             combined_embeddings = inputs_embeds
         else:
+            # Debug prints
+            print(f"Image embeddings shape: {image_embeddings.shape}")
+            
             # Project image embeddings to match model dimensions
-            # First, ensure image_embeddings is 3D: [batch_size, 1, embedding_dim]
             if image_embeddings.dim() == 4:
-                # If 4D, collapse the middle dimensions
-                image_embeddings = image_embeddings.view(image_embeddings.size(0), -1)
+                print("Reshaping 4D image embeddings...")
+                image_embeddings = image_embeddings.squeeze()  # Remove extra dimensions
+                print(f"After squeeze shape: {image_embeddings.shape}")
             
             projected_image = self.image_projection(image_embeddings)
+            print(f"Projected image shape: {projected_image.shape}")
             
             # Get text embeddings from first layer
             text_embeddings = self.phi.get_input_embeddings()(input_ids)
+            print(f"Text embeddings shape: {text_embeddings.shape}")
             
-            # Make projected_image 3D to match text_embeddings: [batch_size, 1, hidden_size]
+            # Make projected_image 3D to match text_embeddings
             projected_image = projected_image.unsqueeze(1)
+            print(f"Projected image after unsqueeze shape: {projected_image.shape}")
             
-            # Now both tensors should be 3D:
-            # projected_image: [batch_size, 1, hidden_size]
-            # text_embeddings: [batch_size, sequence_length, hidden_size]
+            # Now both tensors should be 3D
             combined_embeddings = torch.cat([projected_image, text_embeddings], dim=1)
+            print(f"Combined embeddings shape: {combined_embeddings.shape}")
             
-            # Adjust attention mask to account for added image token
+            # Adjust attention mask
             if attention_mask is not None:
                 extended_attention_mask = torch.ones(
                     (attention_mask.shape[0], 1),
