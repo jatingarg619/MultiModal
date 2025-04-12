@@ -14,7 +14,7 @@ class SigLIPDataset(Dataset):
         # Load CIFAR10 test dataset
         self.cifar_dataset = datasets.CIFAR10(
             root='./data', 
-            train=False,  # Using test set
+            train=False,
             download=True
         )
         
@@ -28,9 +28,18 @@ class SigLIPDataset(Dataset):
         item = self.data[idx]
         
         # Get label from the saved image path
-        # Format: cifar10_images/test_image_{label}_{uuid}.jpg
         image_path = item['image']
-        label = int(image_path.split('_')[2])  # Get the label number
+        print(f"\nProcessing image path: {image_path}")
+        
+        parts = image_path.split('/')[-1].split('_')
+        print(f"Split parts: {parts}")
+        
+        try:
+            label = int(parts[2])  # The label is the third part
+            print(f"Extracted label: {label}")
+        except Exception as e:
+            print(f"Error parsing label from parts {parts}")
+            raise e
         
         # Find corresponding CIFAR10 image
         cifar_images_with_label = [(i, img) for i, (img, l) in enumerate(self.cifar_dataset) if l == label]
