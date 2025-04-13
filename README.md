@@ -1,55 +1,91 @@
-# SmolVLM2 Demo
+# Building a Vision-Language Model (VLM) from Scratch
 
-This project demonstrates how to use the SmolVLM2-2.2B-Instruct model for image and video analysis. SmolVLM2 is a lightweight multimodal model that can process images, videos, and text inputs to generate text outputs.
+This project demonstrates the complete process of building and training our own Vision-Language Model (VLM) from scratch, showcasing different approaches and evolutionary stages in development.
+
+## Development Journey
+
+### Stage 1: Dataset Creation using SmolVLM
+- **Initial Data Generation**
+  - Utilized SmolVLM as a teacher model to create high-quality training data
+  - Generated descriptions for CIFAR10 images
+  - Created a curated dataset of 100 image-text pairs
+  - Ensured diverse and detailed descriptions across all CIFAR10 classes
+- **Quality Control**
+  - Manually verified generated descriptions
+  - Ensured consistency in description style and detail level
+  - Established a baseline for description quality
+
+### Stage 2: Experimentation with SigLIP
+- **Architecture Exploration**
+  - Implemented SigLIP for image-text alignment
+  - Explored vision-language bridging techniques
+  - Tested different embedding approaches
+- **Learning Outcomes**
+  - Understood limitations of separate embedding models
+  - Identified need for more direct fine-tuning approach
+  - Gained insights into vision-language architectures
+
+### Stage 3: Final Implementation with QLoRA
+- **Model Architecture**
+  - Base Model: Microsoft Phi-3-mini-4k-instruct
+  - Training Method: QLoRA (Quantized Low-Rank Adaptation)
+  - Direct image processing capability
+- **Advantages**
+  - Efficient fine-tuning process
+  - Reduced model complexity
+  - Eliminated need for separate image encoder
+  - Better performance with simpler architecture
+
+## Current Implementation
+
+### Features
+- Direct image understanding without separate encoders
+- Efficient CPU inference
+- Customizable generation parameters
+- Pre-loaded CIFAR10 examples
+
+### Technical Details
+- Model: Fine-tuned Phi-3-mini with QLoRA
+- Input: 32x32 RGB images
+- Output: Detailed image descriptions
+- Deployment: CPU-optimized for accessibility
+
+## Hugging Face Space
+- **Space Name**: [jatingocodeo/phi-vlm](https://huggingface.co/spaces/jatingocodeo/phi-vlm)
+- **Features**:
+  - Interactive web interface using Gradio
+  - Example images from CIFAR10
+  - Adjustable generation parameters
+  - Real-time inference
+- **Usage**:
+  - Upload any image or use provided examples
+  - Adjust generation parameters if needed
+  - Get instant image descriptions
 
 ## Requirements
-
-- Python 3.8+
-- CUDA-compatible GPU (recommended)
-- 5.2GB+ GPU RAM for video inference
-
-## Installation
-
-1. Create a virtual environment (recommended):
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows, use: venv\Scripts\activate
+```python
+transformers
+torch
+gradio
+Pillow
+peft
+torchvision
 ```
 
-2. Install the required packages:
-```bash
-pip install -r requirements.txt
-```
+## Key Learnings
+- Evolution from complex multi-model setup to streamlined single model
+- Importance of quality training data
+- Benefits of direct fine-tuning over embedding-based approaches
+- Practical considerations in deploying VLMs
 
-## Usage
+## Future Improvements
+- Expand training dataset
+- Experiment with higher resolution inputs
+- Optimize inference speed
+- Add support for more diverse image types
 
-The demo script (`demo.py`) provides examples of how to use SmolVLM2 for both image and video analysis.
-
-### Running the Demo
-
-```bash
-python demo.py
-```
-
-By default, the script will:
-1. Load the SmolVLM2 model
-2. Process a sample image of a bee and generate a description
-3. (Optional) Process a video file (needs to be uncommented and configured in the code)
-
-### Customizing the Demo
-
-To process your own images or videos:
-
-1. For images: Modify the `image_url` variable in `main()` to point to your image
-2. For videos: Uncomment the video processing section and set `video_path` to your video file
-
-## Model Details
-
-- Model: SmolVLM2-2.2B-Instruct
-- Size: 2.2B parameters
-- Memory Requirements: ~5.2GB GPU RAM
-- Capabilities:
-  - Image analysis and description
-  - Video understanding
-  - Visual question answering
-  - Multi-image comparison # MultiModal
+## Acknowledgments
+- Microsoft for Phi-3-mini model
+- Hugging Face for infrastructure and tools
+- CIFAR10 dataset creators
+- SmolVLM team for initial data generation support
